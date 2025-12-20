@@ -493,13 +493,18 @@ app.get("/api/analytics/subscriptions", authMiddleware, async (c) => {
 // In development, Vite handles static files
 // In production, serve from dist/client
 if (process.env.NODE_ENV === "production") {
-  const clientPath = path.join(process.cwd(), "dist/client");
+  // Serve static assets from dist/client
+  app.use("/assets/*", serveStatic({ root: "./dist/client" }));
+  app.use("/favicon.svg", serveStatic({ root: "./dist/client" }));
   
-  app.use("/*", serveStatic({ root: clientPath }));
-  
-  // SPA fallback
+  // SPA fallback - serve index.html for all non-API routes
   app.get("*", (c) => {
-    const indexPath = path.join(clientPath, "index.html");
+    const requestPath = c.req.path;
+    // Skip API routes
+    if (requestPath.startsWith("/api")) {
+      return c.text("Not found", 404);
+    }
+    const indexPath = path.join(process.cwd(), "dist/client/index.html");
     if (fs.existsSync(indexPath)) {
       return c.html(fs.readFileSync(indexPath, "utf-8"));
     }
