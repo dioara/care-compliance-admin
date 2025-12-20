@@ -4,9 +4,9 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { db, schema } from "./db";
+import { db, schema } from "./db.js";
 import { eq, sql, desc, count, and, gte, lte, isNull, isNotNull } from "drizzle-orm";
-import { verifyPassword, hashPassword, createToken, verifyToken, type AdminUser } from "./auth";
+import { verifyPassword, hashPassword, createToken, verifyToken, type AdminUser } from "./auth.js";
 import path from "path";
 import fs from "fs";
 
