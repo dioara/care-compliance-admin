@@ -99,17 +99,17 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">Overview of all organizations and system metrics</p>
+        <p className="text-slate-500 mt-1">Overview of all organisations and system metrics</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Organizations"
-          value={overviewStats?.totalOrganizations || 0}
+          title="Total Organisations"
+          value={overviewStats?.totalOrganisations || 0}
           icon={Building2}
           color="bg-blue-500"
-          href="/organizations"
+          href="/organisations"
         />
         <StatCard
           title="Total Users"
@@ -236,19 +236,19 @@ export default function Dashboard() {
 
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Organizations */}
+        {/* Recent Organisations */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Recent Organizations</h2>
-            <Link href="/organizations" className="text-sm text-blue-600 hover:text-blue-700">
+            <h2 className="text-lg font-semibold text-slate-900">Recent Organisations</h2>
+            <Link href="/organisations" className="text-sm text-blue-600 hover:text-blue-700">
               View all
             </Link>
           </div>
           <div className="space-y-3">
-            {recentActivity?.recentOrganizations.slice(0, 5).map((org) => (
+            {recentActivity?.recentOrganisations.slice(0, 5).map((org) => (
               <Link
                 key={org.id}
-                href={`/organizations/${org.id}`}
+                href={`/organisations/${org.id}`}
                 className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -267,8 +267,8 @@ export default function Dashboard() {
                 </div>
               </Link>
             ))}
-            {(!recentActivity?.recentOrganizations || recentActivity.recentOrganizations.length === 0) && (
-              <p className="text-center text-slate-400 py-4">No recent organizations</p>
+            {(!recentActivity?.recentOrganisations || recentActivity.recentOrganisations.length === 0) && (
+              <p className="text-center text-slate-400 py-4">No recent organisations</p>
             )}
           </div>
         </div>

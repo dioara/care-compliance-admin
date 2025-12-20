@@ -217,7 +217,7 @@ export default function Users() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Users</h1>
-          <p className="text-slate-500 mt-1">{userList?.length || 0} total users across all organizations</p>
+          <p className="text-slate-500 mt-1">{userList?.length || 0} total users across all organisations</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -255,7 +255,7 @@ export default function Users() {
                   User
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Organization
+                  Organisation
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Role

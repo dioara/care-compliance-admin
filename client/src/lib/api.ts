@@ -33,7 +33,7 @@ export const auth = {
 export const stats = {
   overview: () =>
     fetchAPI<{
-      totalOrganizations: number;
+      totalOrganisations: number;
       totalUsers: number;
       totalServiceUsers: number;
       totalStaffMembers: number;
@@ -44,8 +44,8 @@ export const stats = {
     }>('/stats/overview'),
 };
 
-// Organizations
-export interface Organization {
+// Organisations
+export interface Organisation {
   id: number;
   name: string;
   slug: string;
@@ -71,7 +71,7 @@ export interface Organization {
   } | null;
 }
 
-export interface OrganizationDetails extends Organization {
+export interface OrganisationDetails extends Organisation {
   address: string | null;
   managerTitle: string | null;
   specialisms: string | null;
@@ -93,21 +93,21 @@ export interface OrganizationDetails extends Organization {
   }[];
 }
 
-export const organizations = {
-  list: () => fetchAPI<Organization[]>('/organizations'),
-  get: (id: number) => fetchAPI<OrganizationDetails>(`/organizations/${id}`),
-  update: (id: number, data: Partial<Organization>) =>
-    fetchAPI<{ success: boolean }>(`/organizations/${id}`, {
+export const organisations = {
+  list: () => fetchAPI<Organisation[]>('/organisations'),
+  get: (id: number) => fetchAPI<OrganisationDetails>(`/organisations/${id}`),
+  update: (id: number, data: Partial<Organisation>) =>
+    fetchAPI<{ success: boolean }>(`/organisations/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   suspend: (id: number, isSuspended: boolean) =>
-    fetchAPI<{ success: boolean }>(`/organizations/${id}/suspend`, {
+    fetchAPI<{ success: boolean }>(`/organisations/${id}/suspend`, {
       method: 'PATCH',
       body: JSON.stringify({ isSuspended }),
     }),
   delete: (id: number) =>
-    fetchAPI<{ success: boolean }>(`/organizations/${id}`, {
+    fetchAPI<{ success: boolean }>(`/organisations/${id}`, {
       method: 'DELETE',
     }),
 };
@@ -164,7 +164,7 @@ export const subscriptions = {
 export const activity = {
   recentSignups: () =>
     fetchAPI<{
-      recentOrganizations: { id: number; name: string; email: string | null; createdAt: string }[];
+      recentOrganisations: { id: number; name: string; email: string | null; createdAt: string }[];
       recentUsers: { id: number; name: string | null; email: string; tenantId: number | null; createdAt: string }[];
     }>('/activity/recent-signups'),
 };

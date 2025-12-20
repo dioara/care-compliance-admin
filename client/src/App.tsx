@@ -3,8 +3,8 @@ import { Route, Switch, useLocation, Link, Redirect } from 'wouter';
 import { auth } from './lib/api';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Organizations from './pages/Organizations';
-import OrganizationDetail from './pages/OrganizationDetail';
+import Organisations from './pages/Organisations';
+import OrganisationDetail from './pages/OrganisationDetail';
 import Users from './pages/Users';
 import Subscriptions from './pages/Subscriptions';
 import SupportTickets from './pages/SupportTickets';
@@ -34,7 +34,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/organizations', icon: Building2, label: 'Organizations' },
+    { href: '/organisations', icon: Building2, label: 'Organisations' },
     { href: '/users', icon: UsersIcon, label: 'Users' },
     { href: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
     { href: '/support', icon: TicketIcon, label: 'Support Tickets' },
@@ -164,15 +164,15 @@ export default function App() {
           <Dashboard />
         </ProtectedRoute>
       </Route>
-      <Route path="/organizations">
+      <Route path="/organisations">
         <ProtectedRoute>
-          <Organizations />
+          <Organisations />
         </ProtectedRoute>
       </Route>
-      <Route path="/organizations/:id">
+      <Route path="/organisations/:id">
         {(params) => (
           <ProtectedRoute>
-            <OrganizationDetail id={parseInt(params.id)} />
+            <OrganisationDetail id={parseInt(params.id)} />
           </ProtectedRoute>
         )}
       </Route>

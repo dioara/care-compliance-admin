@@ -88,7 +88,7 @@ app.get("/api/auth/me", async (c) => {
 
 app.get("/api/stats/overview", authMiddleware, async (c) => {
   try {
-    // Total organizations
+    // Total organisations
     const [orgCount] = await db.select({ count: count() }).from(schema.tenants);
     
     // Total users
@@ -119,7 +119,7 @@ app.get("/api/stats/overview", authMiddleware, async (c) => {
       .where(eq(schema.supportTickets.status, "open"));
     
     return c.json({
-      totalOrganizations: orgCount.count,
+      totalOrganisations: orgCount.count,
       totalUsers: userCount.count,
       totalServiceUsers: serviceUserCount.count,
       totalStaffMembers: staffCount.count,
@@ -136,9 +136,9 @@ app.get("/api/stats/overview", authMiddleware, async (c) => {
 
 // ============ ORGANIZATIONS ============
 
-app.get("/api/organizations", authMiddleware, async (c) => {
+app.get("/api/organisations", authMiddleware, async (c) => {
   try {
-    const organizations = await db
+    const organisations = await db
       .select({
         id: schema.tenants.id,
         name: schema.tenants.name,
@@ -155,7 +155,7 @@ app.get("/api/organizations", authMiddleware, async (c) => {
       .from(schema.tenants)
       .orderBy(desc(schema.tenants.createdAt));
     
-    // Get user counts per organization
+    // Get user counts per organisation
     const userCounts = await db
       .select({
         tenantId: schema.users.tenantId,
@@ -165,7 +165,7 @@ app.get("/api/organizations", authMiddleware, async (c) => {
       .where(isNotNull(schema.users.tenantId))
       .groupBy(schema.users.tenantId);
     
-    // Get location counts per organization
+    // Get location counts per organisation
     const locationCounts = await db
       .select({
         tenantId: schema.locations.tenantId,
@@ -174,7 +174,7 @@ app.get("/api/organizations", authMiddleware, async (c) => {
       .from(schema.locations)
       .groupBy(schema.locations.tenantId);
     
-    // Get service user counts per organization
+    // Get service user counts per organisation
     const serviceUserCounts = await db
       .select({
         tenantId: schema.serviceUsers.tenantId,
@@ -183,7 +183,7 @@ app.get("/api/organizations", authMiddleware, async (c) => {
       .from(schema.serviceUsers)
       .groupBy(schema.serviceUsers.tenantId);
     
-    // Get staff counts per organization
+    // Get staff counts per organisation
     const staffCounts = await db
       .select({
         tenantId: schema.staffMembers.tenantId,
@@ -192,7 +192,7 @@ app.get("/api/organizations", authMiddleware, async (c) => {
       .from(schema.staffMembers)
       .groupBy(schema.staffMembers.tenantId);
     
-    // Get subscription status per organization
+    // Get subscription status per organisation
     const subscriptions = await db
       .select({
         tenantId: schema.tenantSubscriptions.tenantId,
@@ -206,7 +206,7 @@ app.get("/api/organizations", authMiddleware, async (c) => {
       .from(schema.tenantSubscriptions);
     
     // Combine data
-    const enrichedOrgs = organizations.map(org => {
+    const enrichedOrgs = organisations.map(org => {
       const userCount = userCounts.find(u => u.tenantId === org.id)?.count || 0;
       const locationCount = locationCounts.find(l => l.tenantId === org.id)?.count || 0;
       const serviceUserCount = serviceUserCounts.find(s => s.tenantId === org.id)?.count || 0;
@@ -225,13 +225,13 @@ app.get("/api/organizations", authMiddleware, async (c) => {
     
     return c.json(enrichedOrgs);
   } catch (error) {
-    console.error("Error fetching organizations:", error);
-    return c.json({ error: "Failed to fetch organizations" }, 500);
+    console.error("Error fetching organisations:", error);
+    return c.json({ error: "Failed to fetch organisations" }, 500);
   }
 });
 
-// Get single organization details
-app.get("/api/organizations/:id", authMiddleware, async (c) => {
+// Get single organisation details
+app.get("/api/organisations/:id", authMiddleware, async (c) => {
   const id = parseInt(c.req.param("id"));
   
   try {
@@ -241,7 +241,7 @@ app.get("/api/organizations/:id", authMiddleware, async (c) => {
       .where(eq(schema.tenants.id, id));
     
     if (!org) {
-      return c.json({ error: "Organization not found" }, 404);
+      return c.json({ error: "Organisation not found" }, 404);
     }
     
     // Get users for this org
@@ -292,8 +292,8 @@ app.get("/api/organizations/:id", authMiddleware, async (c) => {
       staffCount: staffCount.count,
     });
   } catch (error) {
-    console.error("Error fetching organization:", error);
-    return c.json({ error: "Failed to fetch organization" }, 500);
+    console.error("Error fetching organisation:", error);
+    return c.json({ error: "Failed to fetch organisation" }, 500);
   }
 });
 
@@ -326,7 +326,7 @@ app.get("/api/users", authMiddleware, async (c) => {
     
     const enrichedUsers = users.map(user => ({
       ...user,
-      tenantName: user.tenantId ? tenantMap.get(user.tenantId) || "Unknown" : "No Organization",
+      tenantName: user.tenantId ? tenantMap.get(user.tenantId) || "Unknown" : "No Organisation",
     }));
     
     return c.json(enrichedUsers);
@@ -407,7 +407,7 @@ app.get("/api/activity/recent-signups", authMiddleware, async (c) => {
       .limit(10);
     
     return c.json({
-      recentOrganizations: recentOrgs,
+      recentOrganisations: recentOrgs,
       recentUsers: recentUsers,
     });
   } catch (error) {
@@ -434,15 +434,15 @@ app.get("/api/support-tickets", authMiddleware, async (c) => {
 
 // ============ ORGANIZATION CRUD ============
 
-// Update organization
-app.put("/api/organizations/:id", authMiddleware, async (c) => {
+// Update organisation
+app.put("/api/organisations/:id", authMiddleware, async (c) => {
   const id = parseInt(c.req.param("id"));
   const body = await c.req.json();
   
   try {
     const [existing] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, id));
     if (!existing) {
-      return c.json({ error: "Organization not found" }, 404);
+      return c.json({ error: "Organisation not found" }, 404);
     }
     
     await db.update(schema.tenants)
@@ -460,13 +460,13 @@ app.put("/api/organizations/:id", authMiddleware, async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error("Error updating organization:", error);
-    return c.json({ error: "Failed to update organization" }, 500);
+    console.error("Error updating organisation:", error);
+    return c.json({ error: "Failed to update organisation" }, 500);
   }
 });
 
-// Suspend/Unsuspend organization
-app.patch("/api/organizations/:id/suspend", authMiddleware, async (c) => {
+// Suspend/Unsuspend organisation
+app.patch("/api/organisations/:id/suspend", authMiddleware, async (c) => {
   const id = parseInt(c.req.param("id"));
   const { isSuspended } = await c.req.json();
   
@@ -477,20 +477,20 @@ app.patch("/api/organizations/:id/suspend", authMiddleware, async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error("Error suspending organization:", error);
-    return c.json({ error: "Failed to suspend organization" }, 500);
+    console.error("Error suspending organisation:", error);
+    return c.json({ error: "Failed to suspend organisation" }, 500);
   }
 });
 
-// Delete organization (soft delete by suspending, or hard delete)
-app.delete("/api/organizations/:id", authMiddleware, async (c) => {
+// Delete organisation (soft delete by suspending, or hard delete)
+app.delete("/api/organisations/:id", authMiddleware, async (c) => {
   const id = parseInt(c.req.param("id"));
   
   try {
     // First check if org exists
     const [existing] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, id));
     if (!existing) {
-      return c.json({ error: "Organization not found" }, 404);
+      return c.json({ error: "Organisation not found" }, 404);
     }
     
     // Delete related data first (cascade)
@@ -509,8 +509,8 @@ app.delete("/api/organizations/:id", authMiddleware, async (c) => {
     
     return c.json({ success: true });
   } catch (error) {
-    console.error("Error deleting organization:", error);
-    return c.json({ error: "Failed to delete organization" }, 500);
+    console.error("Error deleting organisation:", error);
+    return c.json({ error: "Failed to delete organisation" }, 500);
   }
 });
 

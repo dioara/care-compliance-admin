@@ -1,6 +1,6 @@
 import { mysqlTable, int, varchar, text, timestamp, tinyint, mysqlEnum, date, json, index } from "drizzle-orm/mysql-core";
 
-// Tenants (Organizations)
+// Tenants (Organisations)
 export const tenants = mysqlTable("tenants", {
   id: int().autoincrement().notNull().primaryKey(),
   name: varchar({ length: 255 }).notNull(),

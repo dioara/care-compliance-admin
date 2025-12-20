@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { organizations } from '@/lib/api';
+import { organisations } from '@/lib/api';
 import { Link } from 'wouter';
 import {
   ArrowLeft,
@@ -19,10 +19,10 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
-export default function OrganizationDetail({ id }: { id: number }) {
+export default function OrganisationDetail({ id }: { id: number }) {
   const { data: org, isLoading, error } = useQuery({
-    queryKey: ['organizations', id],
-    queryFn: () => organizations.get(id),
+    queryKey: ['organisations', id],
+    queryFn: () => organisations.get(id),
   });
 
   if (isLoading) {
@@ -38,9 +38,9 @@ export default function OrganizationDetail({ id }: { id: number }) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-        <p className="text-red-700">Failed to load organization</p>
-        <Link href="/organizations" className="text-blue-600 hover:underline mt-2 inline-block">
-          Back to organizations
+        <p className="text-red-700">Failed to load organisation</p>
+        <Link href="/organisations" className="text-blue-600 hover:underline mt-2 inline-block">
+          Back to organisations
         </Link>
       </div>
     );
@@ -63,7 +63,7 @@ export default function OrganizationDetail({ id }: { id: number }) {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link
-          href="/organizations"
+          href="/organisations"
           className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
         >
           <ArrowLeft className="h-5 w-5 text-slate-600" />
@@ -118,9 +118,9 @@ export default function OrganizationDetail({ id }: { id: number }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Organization Details */}
+        {/* Organisation Details */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Organization Details</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Organisation Details</h2>
           <div className="space-y-4">
             {org.email && (
               <div className="flex items-center gap-3">
