@@ -145,6 +145,7 @@ export const supportTickets = mysqlTable("supportTickets", {
   category: mysqlEnum(['bug', 'feature_request', 'question', 'other']).default('other').notNull(),
   priority: mysqlEnum(['low', 'medium', 'high', 'urgent']).default('medium').notNull(),
   status: mysqlEnum(['open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed']).default('open').notNull(),
+  response: text(),
   createdAt: timestamp({ mode: 'string' }).default('CURRENT_TIMESTAMP').notNull(),
   updatedAt: timestamp({ mode: 'string' }).defaultNow().onUpdateNow().notNull(),
 });

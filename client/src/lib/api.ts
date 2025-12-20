@@ -96,6 +96,20 @@ export interface OrganizationDetails extends Organization {
 export const organizations = {
   list: () => fetchAPI<Organization[]>('/organizations'),
   get: (id: number) => fetchAPI<OrganizationDetails>(`/organizations/${id}`),
+  update: (id: number, data: Partial<Organization>) =>
+    fetchAPI<{ success: boolean }>(`/organizations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  suspend: (id: number, isSuspended: boolean) =>
+    fetchAPI<{ success: boolean }>(`/organizations/${id}/suspend`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isSuspended }),
+    }),
+  delete: (id: number) =>
+    fetchAPI<{ success: boolean }>(`/organizations/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Users
@@ -115,6 +129,15 @@ export interface User {
 
 export const users = {
   list: () => fetchAPI<User[]>('/users'),
+  update: (id: number, data: Partial<User>) =>
+    fetchAPI<{ success: boolean }>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: number) =>
+    fetchAPI<{ success: boolean }>(`/users/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Subscriptions
@@ -149,8 +172,8 @@ export const activity = {
 // Support Tickets
 export interface SupportTicket {
   id: number;
-  tenantId: string;
-  userId: string;
+  tenantId: number | null;
+  userId: number | null;
   ticketNumber: string;
   name: string;
   email: string;
@@ -159,12 +182,42 @@ export interface SupportTicket {
   category: string;
   priority: string;
   status: string;
+  response: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface SupportTicketDetails extends SupportTicket {
+  tenant: { id: number; name: string } | null;
+  user: { id: number; name: string; email: string } | null;
+}
+
 export const supportTickets = {
   list: () => fetchAPI<SupportTicket[]>('/support-tickets'),
+  get: (id: number) => fetchAPI<SupportTicketDetails>(`/support-tickets/${id}`),
+  updateStatus: (id: number, status: string) =>
+    fetchAPI<{ success: boolean }>(`/support-tickets/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+  updatePriority: (id: number, priority: string) =>
+    fetchAPI<{ success: boolean }>(`/support-tickets/${id}/priority`, {
+      method: 'PATCH',
+      body: JSON.stringify({ priority }),
+    }),
+  respond: (id: number, response: string) =>
+    fetchAPI<{ success: boolean }>(`/support-tickets/${id}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ response }),
+    }),
+  close: (id: number) =>
+    fetchAPI<{ success: boolean }>(`/support-tickets/${id}/close`, {
+      method: 'PATCH',
+    }),
+  delete: (id: number) =>
+    fetchAPI<{ success: boolean }>(`/support-tickets/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Analytics

@@ -432,6 +432,274 @@ app.get("/api/support-tickets", authMiddleware, async (c) => {
   }
 });
 
+// ============ ORGANIZATION CRUD ============
+
+// Update organization
+app.put("/api/organizations/:id", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const body = await c.req.json();
+  
+  try {
+    const [existing] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, id));
+    if (!existing) {
+      return c.json({ error: "Organization not found" }, 404);
+    }
+    
+    await db.update(schema.tenants)
+      .set({
+        name: body.name,
+        email: body.email,
+        telephone: body.telephone,
+        managerName: body.managerName,
+        serviceType: body.serviceType,
+        careSettingType: body.careSettingType,
+        cqcRating: body.cqcRating,
+        isSuspended: body.isSuspended,
+      })
+      .where(eq(schema.tenants.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error updating organization:", error);
+    return c.json({ error: "Failed to update organization" }, 500);
+  }
+});
+
+// Suspend/Unsuspend organization
+app.patch("/api/organizations/:id/suspend", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const { isSuspended } = await c.req.json();
+  
+  try {
+    await db.update(schema.tenants)
+      .set({ isSuspended })
+      .where(eq(schema.tenants.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error suspending organization:", error);
+    return c.json({ error: "Failed to suspend organization" }, 500);
+  }
+});
+
+// Delete organization (soft delete by suspending, or hard delete)
+app.delete("/api/organizations/:id", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  
+  try {
+    // First check if org exists
+    const [existing] = await db.select().from(schema.tenants).where(eq(schema.tenants.id, id));
+    if (!existing) {
+      return c.json({ error: "Organization not found" }, 404);
+    }
+    
+    // Delete related data first (cascade)
+    await db.delete(schema.tenantSubscriptions).where(eq(schema.tenantSubscriptions.tenantId, id));
+    await db.delete(schema.supportTickets).where(eq(schema.supportTickets.tenantId, String(id)));
+    // Update users to remove tenant association
+    await db.update(schema.users).set({ tenantId: null }).where(eq(schema.users.tenantId, id));
+    // Delete locations
+    await db.delete(schema.locations).where(eq(schema.locations.tenantId, id));
+    // Delete service users
+    await db.delete(schema.serviceUsers).where(eq(schema.serviceUsers.tenantId, id));
+    // Delete staff members
+    await db.delete(schema.staffMembers).where(eq(schema.staffMembers.tenantId, id));
+    // Finally delete the tenant
+    await db.delete(schema.tenants).where(eq(schema.tenants.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting organization:", error);
+    return c.json({ error: "Failed to delete organization" }, 500);
+  }
+});
+
+// ============ USER CRUD ============
+
+// Update user
+app.put("/api/users/:id", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const body = await c.req.json();
+  
+  try {
+    const [existing] = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    if (!existing) {
+      return c.json({ error: "User not found" }, 404);
+    }
+    
+    await db.update(schema.users)
+      .set({
+        name: body.name,
+        email: body.email,
+        role: body.role,
+        superAdmin: body.superAdmin,
+      })
+      .where(eq(schema.users.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return c.json({ error: "Failed to update user" }, 500);
+  }
+});
+
+// Delete user
+app.delete("/api/users/:id", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  
+  try {
+    const [existing] = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    if (!existing) {
+      return c.json({ error: "User not found" }, 404);
+    }
+    
+    await db.delete(schema.users).where(eq(schema.users.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return c.json({ error: "Failed to delete user" }, 500);
+  }
+});
+
+// ============ SUPPORT TICKET CRUD ============
+
+// Get single ticket
+app.get("/api/support-tickets/:id", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  
+  try {
+    const [ticket] = await db.select().from(schema.supportTickets).where(eq(schema.supportTickets.id, id));
+    if (!ticket) {
+      return c.json({ error: "Ticket not found" }, 404);
+    }
+    
+    // Get tenant info if available
+    let tenant = null;
+    if (ticket.tenantId) {
+      const tenantIdNum = parseInt(ticket.tenantId);
+      if (!isNaN(tenantIdNum)) {
+        const [t] = await db.select({ id: schema.tenants.id, name: schema.tenants.name })
+          .from(schema.tenants)
+          .where(eq(schema.tenants.id, tenantIdNum));
+        tenant = t;
+      }
+    }
+    
+    // Get user info if available
+    let user = null;
+    if (ticket.userId) {
+      const userIdNum = parseInt(ticket.userId);
+      if (!isNaN(userIdNum)) {
+        const [u] = await db.select({ id: schema.users.id, name: schema.users.name, email: schema.users.email })
+          .from(schema.users)
+          .where(eq(schema.users.id, userIdNum));
+        user = u;
+      }
+    }
+    
+    return c.json({ ...ticket, tenant, user });
+  } catch (error) {
+    console.error("Error fetching ticket:", error);
+    return c.json({ error: "Failed to fetch ticket" }, 500);
+  }
+});
+
+// Update ticket status
+app.patch("/api/support-tickets/:id/status", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const { status } = await c.req.json();
+  
+  try {
+    await db.update(schema.supportTickets)
+      .set({ status })
+      .where(eq(schema.supportTickets.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error updating ticket status:", error);
+    return c.json({ error: "Failed to update ticket status" }, 500);
+  }
+});
+
+// Update ticket priority
+app.patch("/api/support-tickets/:id/priority", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const { priority } = await c.req.json();
+  
+  try {
+    await db.update(schema.supportTickets)
+      .set({ priority })
+      .where(eq(schema.supportTickets.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error updating ticket priority:", error);
+    return c.json({ error: "Failed to update ticket priority" }, 500);
+  }
+});
+
+// Add response to ticket
+app.post("/api/support-tickets/:id/respond", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const { response } = await c.req.json();
+  
+  try {
+    const [ticket] = await db.select().from(schema.supportTickets).where(eq(schema.supportTickets.id, id));
+    if (!ticket) {
+      return c.json({ error: "Ticket not found" }, 404);
+    }
+    
+    // Append response to existing response or create new
+    const existingResponse = ticket.response || "";
+    const timestamp = new Date().toISOString();
+    const newResponse = existingResponse 
+      ? `${existingResponse}\n\n---\n[${timestamp}] Owner Response:\n${response}`
+      : `[${timestamp}] Owner Response:\n${response}`;
+    
+    await db.update(schema.supportTickets)
+      .set({ 
+        response: newResponse, 
+        status: "in_progress",
+      })
+      .where(eq(schema.supportTickets.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error responding to ticket:", error);
+    return c.json({ error: "Failed to respond to ticket" }, 500);
+  }
+});
+
+// Close ticket
+app.patch("/api/support-tickets/:id/close", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  
+  try {
+    await db.update(schema.supportTickets)
+      .set({ status: "closed" })
+      .where(eq(schema.supportTickets.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error closing ticket:", error);
+    return c.json({ error: "Failed to close ticket" }, 500);
+  }
+});
+
+// Delete ticket
+app.delete("/api/support-tickets/:id", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  
+  try {
+    await db.delete(schema.supportTickets).where(eq(schema.supportTickets.id, id));
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting ticket:", error);
+    return c.json({ error: "Failed to delete ticket" }, 500);
+  }
+});
+
 // ============ SUBSCRIPTION ANALYTICS ============
 
 app.get("/api/analytics/subscriptions", authMiddleware, async (c) => {

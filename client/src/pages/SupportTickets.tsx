@@ -1,24 +1,261 @@
-import { useQuery } from '@tanstack/react-query';
-import { supportTickets } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supportTickets, type SupportTicket } from '@/lib/api';
 import {
   TicketIcon,
   Search,
   AlertCircle,
   Clock,
-  CheckCircle,
   MessageSquare,
+  X,
+  Send,
+  CheckCircle,
+  Trash2,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { useState } from 'react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+
+const statusConfig: Record<string, { bg: string; text: string }> = {
+  open: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  in_progress: { bg: 'bg-amber-100', text: 'text-amber-700' },
+  waiting_on_customer: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  resolved: { bg: 'bg-green-100', text: 'text-green-700' },
+  closed: { bg: 'bg-slate-100', text: 'text-slate-600' },
+};
+
+const priorityConfig: Record<string, { bg: string; text: string }> = {
+  low: { bg: 'bg-slate-100', text: 'text-slate-600' },
+  medium: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  high: { bg: 'bg-orange-100', text: 'text-orange-700' },
+  urgent: { bg: 'bg-red-100', text: 'text-red-700' },
+};
+
+interface TicketDetailModalProps {
+  ticket: SupportTicket;
+  onClose: () => void;
+}
+
+function TicketDetailModal({ ticket, onClose }: TicketDetailModalProps) {
+  const [response, setResponse] = useState('');
+  const queryClient = useQueryClient();
+
+  const respondMutation = useMutation({
+    mutationFn: (text: string) => supportTickets.respond(ticket.id, text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      setResponse('');
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: string) => supportTickets.updateStatus(ticket.id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+    },
+  });
+
+  const updatePriorityMutation = useMutation({
+    mutationFn: (priority: string) => supportTickets.updatePriority(ticket.id, priority),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+    },
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: () => supportTickets.close(ticket.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      onClose();
+    },
+  });
+
+  const sConfig = statusConfig[ticket.status] || statusConfig.open;
+  const pConfig = priorityConfig[ticket.priority] || priorityConfig.medium;
+
+  const handleSubmitResponse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (response.trim()) {
+      respondMutation.mutate(response.trim());
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-mono text-slate-500">#{ticket.ticketNumber}</span>
+            <span className={`px-2 py-0.5 ${sConfig.bg} ${sConfig.text} text-xs font-medium rounded-full capitalize`}>
+              {ticket.status.replace(/_/g, ' ')}
+            </span>
+            <span className={`px-2 py-0.5 ${pConfig.bg} ${pConfig.text} text-xs font-medium rounded-full capitalize`}>
+              {ticket.priority}
+            </span>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">{ticket.subject}</h2>
+            <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+              <span>{ticket.name}</span>
+              <span>•</span>
+              <span>{ticket.email}</span>
+              <span>•</span>
+              <span>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-slate-700 mb-1">Category</p>
+            <p className="text-slate-600 capitalize">{ticket.category.replace(/_/g, ' ')}</p>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-slate-700 mb-2">Description</p>
+            <p className="text-slate-600 whitespace-pre-wrap">{ticket.description}</p>
+          </div>
+
+          {ticket.response && (
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+              <p className="text-sm font-medium text-blue-700 mb-2">Response History</p>
+              <p className="text-slate-700 whitespace-pre-wrap text-sm">{ticket.response}</p>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-700 mb-2">Change Status</p>
+              <select
+                value={ticket.status}
+                onChange={(e) => updateStatusMutation.mutate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                disabled={updateStatusMutation.isPending}
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="waiting_on_customer">Waiting on Customer</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700 mb-2">Change Priority</p>
+              <select
+                value={ticket.priority}
+                onChange={(e) => updatePriorityMutation.mutate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                disabled={updatePriorityMutation.isPending}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Response Form */}
+          <form onSubmit={handleSubmitResponse} className="space-y-3">
+            <p className="text-sm font-medium text-slate-700">Add Response</p>
+            <textarea
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder="Type your response here..."
+              rows={4}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            />
+            <div className="flex justify-between">
+              <button
+                type="button"
+                onClick={() => closeMutation.mutate()}
+                disabled={closeMutation.isPending || ticket.status === 'closed'}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-50 flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Close Ticket
+              </button>
+              <button
+                type="submit"
+                disabled={!response.trim() || respondMutation.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {respondMutation.isPending ? 'Sending...' : 'Send Response'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface DeleteConfirmProps {
+  ticket: SupportTicket;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+}
+
+function DeleteConfirm({ ticket, onClose, onConfirm, isLoading }: DeleteConfirmProps) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div className="p-6">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="h-6 w-6 text-red-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-center mb-2">Delete Ticket</h2>
+          <p className="text-slate-600 text-center mb-4">
+            Are you sure you want to delete ticket <strong>#{ticket.ticketNumber}</strong>? This action cannot be undone.
+          </p>
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              {isLoading ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function SupportTickets() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [deletingTicket, setDeletingTicket] = useState<SupportTicket | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: tickets, isLoading, error } = useQuery({
     queryKey: ['support-tickets'],
     queryFn: supportTickets.list,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => supportTickets.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      setDeletingTicket(null);
+    },
   });
 
   const filteredTickets = tickets?.filter((ticket) => {
@@ -34,21 +271,6 @@ export default function SupportTickets() {
 
   const statuses = ['all', 'open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed'];
   const priorities = ['all', 'low', 'medium', 'high', 'urgent'];
-
-  const statusConfig: Record<string, { bg: string; text: string }> = {
-    open: { bg: 'bg-blue-100', text: 'text-blue-700' },
-    in_progress: { bg: 'bg-amber-100', text: 'text-amber-700' },
-    waiting_on_customer: { bg: 'bg-purple-100', text: 'text-purple-700' },
-    resolved: { bg: 'bg-green-100', text: 'text-green-700' },
-    closed: { bg: 'bg-slate-100', text: 'text-slate-600' },
-  };
-
-  const priorityConfig: Record<string, { bg: string; text: string }> = {
-    low: { bg: 'bg-slate-100', text: 'text-slate-600' },
-    medium: { bg: 'bg-blue-100', text: 'text-blue-700' },
-    high: { bg: 'bg-orange-100', text: 'text-orange-700' },
-    urgent: { bg: 'bg-red-100', text: 'text-red-700' },
-  };
 
   if (isLoading) {
     return (
@@ -189,15 +411,33 @@ export default function SupportTickets() {
                   <p className="text-sm text-slate-600 line-clamp-2">{ticket.description}</p>
                 </div>
 
-                <div className="flex flex-col items-end gap-2 text-sm text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <span>{ticket.name}</span>
-                    <span className="text-slate-300">|</span>
-                    <span>{ticket.email}</span>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="text-sm text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <span>{ticket.name}</span>
+                      <span className="text-slate-300">|</span>
+                      <span>{ticket.email}</span>
+                    </div>
+                    <div className="flex items-center gap-1 justify-end mt-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      View & Respond
+                    </button>
+                    <button
+                      onClick={() => setDeletingTicket(ticket)}
+                      className="p-1.5 hover:bg-red-100 rounded-lg text-red-600"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -212,6 +452,22 @@ export default function SupportTickets() {
           </div>
         )}
       </div>
+
+      {selectedTicket && (
+        <TicketDetailModal
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+        />
+      )}
+
+      {deletingTicket && (
+        <DeleteConfirm
+          ticket={deletingTicket}
+          onClose={() => setDeletingTicket(null)}
+          onConfirm={() => deleteMutation.mutate(deletingTicket.id)}
+          isLoading={deleteMutation.isPending}
+        />
+      )}
     </div>
   );
 }
