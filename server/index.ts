@@ -562,6 +562,39 @@ app.delete("/api/users/:id", authMiddleware, async (c) => {
   }
 });
 
+// Reset user password (admin action)
+app.patch("/api/users/:id/password", authMiddleware, async (c) => {
+  const id = parseInt(c.req.param("id"));
+  const body = await c.req.json();
+  
+  try {
+    const [existing] = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    if (!existing) {
+      return c.json({ error: "User not found" }, 404);
+    }
+    
+    const { newPassword } = body;
+    if (!newPassword || newPassword.length < 8) {
+      return c.json({ error: "Password must be at least 8 characters" }, 400);
+    }
+    
+    // Hash the new password
+    const hashedPassword = await hashPassword(newPassword);
+    
+    await db.update(schema.users)
+      .set({ 
+        password: hashedPassword,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(schema.users.id, id));
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error resetting user password:", error);
+    return c.json({ error: "Failed to reset password" }, 500);
+  }
+});
+
 // ============ SUPPORT TICKET CRUD ============
 
 // Get single ticket

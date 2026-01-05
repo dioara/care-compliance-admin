@@ -138,6 +138,11 @@ export const users = {
     fetchAPI<{ success: boolean }>(`/users/${id}`, {
       method: 'DELETE',
     }),
+  resetPassword: (id: number, newPassword: string) =>
+    fetchAPI<{ success: boolean }>(`/users/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newPassword }),
+    }),
 };
 
 // Subscriptions

@@ -10,6 +10,9 @@ import {
   Edit,
   Trash2,
   X,
+  Key,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -150,11 +153,139 @@ function DeleteConfirm({ user, onClose, onConfirm, isLoading }: DeleteConfirmPro
   );
 }
 
+interface ResetPasswordModalProps {
+  user: User;
+  onClose: () => void;
+  onConfirm: (newPassword: string) => void;
+  isLoading: boolean;
+}
+
+function ResetPasswordModal({ user, onClose, onConfirm, isLoading }: ResetPasswordModalProps) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    onConfirm(newPassword);
+  };
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(password);
+    setConfirmPassword(password);
+    setShowPassword(true);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Reset Password</h2>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-sm text-amber-800">
+              You are resetting the password for <strong>{user.name || user.email}</strong>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Enter new password"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Confirm new password"
+              required
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={generatePassword}
+            className="w-full px-3 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+          >
+            Generate Strong Password
+          </button>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isLoading ? 'Resetting...' : 'Reset Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Users() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   const queryClient = useQueryClient();
 
   const { data: userList, isLoading, error } = useQuery({
@@ -176,6 +307,15 @@ export default function Users() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setDeletingUser(null);
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ id, newPassword }: { id: number; newPassword: string }) =>
+      users.resetPassword(id, newPassword),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setResetPasswordUser(null);
     },
   });
 
@@ -327,6 +467,13 @@ export default function Users() {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => setResetPasswordUser(user)}
+                        className="p-2 hover:bg-blue-100 rounded-lg text-blue-600"
+                        title="Reset Password"
+                      >
+                        <Key className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => setDeletingUser(user)}
                         className="p-2 hover:bg-red-100 rounded-lg text-red-600"
                         title="Delete"
@@ -364,6 +511,15 @@ export default function Users() {
           onClose={() => setDeletingUser(null)}
           onConfirm={() => deleteMutation.mutate(deletingUser.id)}
           isLoading={deleteMutation.isPending}
+        />
+      )}
+
+      {resetPasswordUser && (
+        <ResetPasswordModal
+          user={resetPasswordUser}
+          onClose={() => setResetPasswordUser(null)}
+          onConfirm={(newPassword) => resetPasswordMutation.mutate({ id: resetPasswordUser.id, newPassword })}
+          isLoading={resetPasswordMutation.isPending}
         />
       )}
     </div>

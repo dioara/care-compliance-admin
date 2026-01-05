@@ -59,6 +59,7 @@ export const users = mysqlTable("users", {
   superAdmin: tinyint().default(0).notNull(),
   emailVerified: tinyint().default(0).notNull(),
   loginMethod: varchar({ length: 50 }),
+  password: varchar({ length: 255 }).notNull(),
 });
 
 // Locations
