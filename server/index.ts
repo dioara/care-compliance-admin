@@ -581,10 +581,10 @@ app.patch("/api/users/:id/password", authMiddleware, async (c) => {
     // Hash the new password
     const hashedPassword = await hashPassword(newPassword);
     
+    // Note: updatedAt will be automatically updated by MySQL's ON UPDATE CURRENT_TIMESTAMP
     await db.update(schema.users)
       .set({ 
         password: hashedPassword,
-        updatedAt: new Date().toISOString(),
       })
       .where(eq(schema.users.id, id));
     
